@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCM Lite - Human Capital Management System</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+    /* ===== SPECIAL GRID BACKGROUND ===== */
+    .grid-bg {
+      background-color: #020617;
+      background-image:
+        /* vignette on top */
+        radial-gradient(ellipse at center, transparent 35%, rgba(2, 6, 23, 0.92) 100%),
+        /* colour glows */
+        radial-gradient(circle at 12% 8%, rgba(2, 132, 199, 0.22) 0%, transparent 42%),
+        radial-gradient(circle at 88% 92%, rgba(99, 102, 241, 0.18) 0%, transparent 42%),
+        radial-gradient(circle at 92% 6%, rgba(16, 185, 129, 0.10) 0%, transparent 34%),
+        /* major grid lines */
+        linear-gradient(rgba(56, 189, 248, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.09) 1px, transparent 1px),
+        /* minor grid lines */
+        linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+      background-size:
+        100% 100%,
+        100% 100%,
+        100% 100%,
+        100% 100%,
+        72px 72px,
+        72px 72px,
+        18px 18px,
+        18px 18px;
+      background-attachment: fixed;
+    }
+
+    /* Glassmorphism Styling */
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px rgba(2, 6, 23, 0.35);
+    }
+    .glass-nav {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-header {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Animations */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(2, 132, 199, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(2, 132, 199, 0.6); }
+    }
+    .pulse-glow { animation: pulseGlow 3s infinite; }
+
+    /* Print only the payslip */
+    @media print {
+      body * { visibility: hidden; }
+      #printableSlip, #printableSlip * { visibility: visible; }
+      #printableSlip { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #000 !important; }
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans grid-bg text-slate-100 overflow-hidden">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- App Wrapper -->
+  <div class="flex h-screen w-full overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 glass-nav flex flex-col z-20 shrink-0 transition-all duration-300" id="sidebar">
+      <!-- Brand Logo -->
+      <div class="h-16 flex items-center px-6 border-b border-slate-800/80 justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-sky-500/20">
+            H
+          </div>
+          <div>
+            <h1 class="font-bold text-lg tracking-tight text-white leading-none">HCM <span class="text-sky-400 font-normal">Lite</span></h1>
+            <span class="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Saylani Edition</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Role Indicator Tag -->
+      <div class="px-4 pt-4 pb-2">
+        <div class="px-3 py-2 rounded-lg bg-slate-800/80 border border-slate-700/50 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-medium text-slate-300">Active View:</span>
+          </div>
+          <span id="sidebarRoleBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 uppercase tracking-wider">
+            Admin
+          </span>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-sky-400 bg-sky-500/10 border border-sky-500/20">
+          <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+          <span>Dashboard</span>
+        </button>
+
+        <button onclick="switchTab('admin')" id="nav-admin" class="nav-btn role-admin w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+          <i class="fa-solid fa-sliders w-5 text-center"></i>
+          <span>Company Setup</span>
+        </button>
+
+        <button onclick="switchTab('directory')" id="nav-directory" class="nav-btn role-admin role-hr w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+          <i class="fa-solid fa-users w-5 text-center"></i>
+          <span>Employees</span>
+        </button>
+
+        <button onclick="switchTab('attendance')" id="nav-attendance" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+          <i class="fa-solid fa-clock w-5 text-center"></i>
+          <span>Attendance</span>
+        </button>
+
+        <button onclick="switchTab('leaves')" id="nav-leaves" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+          <i class="fa-solid fa-calendar-minus w-5 text-center"></i>
+          <span>Leaves</span>
+        </button>
+
+        <button onclick="switchTab('payroll')" id="nav-payroll" class="nav-btn role-admin role-hr role-emp w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+          <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+          <span>Payroll &amp; Slips</span>
+        </button>
+      </nav>
+
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950/40">
+
+      <!-- Top Header Navigation -->
+      <header class="h-16 glass-header flex items-center justify-between px-6 z-10 shrink-0">
+        <!-- Page Title & Date -->
+        <div class="flex items-center space-x-4">
+          <h2 id="pageTitle" class="text-xl font-bold text-white tracking-tight">Dashboard Overview</h2>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hidden sm:inline-block" id="currentDateStr"></span>
+        </div>
+
+        <!-- Role Switcher & User Profile Controls -->
+        <div class="flex items-center space-x-4">
+          <!-- Role Switcher Dropdown -->
+          <div class="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700/80 shadow-inner">
+            <span class="text-xs text-slate-400 font-medium px-2.5 hidden md:inline"><i class="fa-solid fa-user-gear mr-1"></i> Role:</span>
+            <select id="roleSelector" onchange="changeRole(this.value)" class="bg-slate-900 text-xs font-semibold text-sky-400 px-3 py-1.5 rounded-md outline-none border border-slate-700 cursor-pointer hover:border-sky-500 transition-colors">
+              <option value="Admin">Admin (Setup &amp; Specs)</option>
+              <option value="HR">HR Manager (Ops &amp; Payroll)</option>
+              <option value="Employee">Employee (Self-Service)</option>
+            </select>
+          </div>
+
+          <!-- Active Employee Switcher for Self-Service View -->
+          <div id="employeeSelectWrapper" class="hidden items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700/80">
+            <span class="text-xs text-slate-400 font-medium px-2 hidden lg:inline">As:</span>
+            <select id="employeeSelector" onchange="setActiveEmployee(this.value)" class="bg-slate-900 text-xs text-slate-200 px-2 py-1.5 rounded-md outline-none border border-slate-700 cursor-pointer">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Tab Container -->
+      <main class="flex-1 overflow-y-auto p-6 space-y-6" id="mainContent">
+
+        <!-- TAB 1: DASHBOARD OVERVIEW -->
+        <div id="tab-dashboard" class="tab-content space-y-6">
+          <!-- Top Metric Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+            <!-- Total Employees -->
+            <div class="glass-card p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-sky-500">
+              <div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Headcount</p>
+                <h3 class="text-3xl font-extrabold text-white mt-1" id="dashTotalHeadcount">0</h3>
+                <p class="text-[11px] text-slate-400 mt-1" id="dashDeptCount">Across 0 Departments</p>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-400 text-xl">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+
+            <!-- Today's Attendance -->
+            <div class="glass-card p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-emerald-500">
+              <div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Today's Attendance</p>
+                <h3 class="text-3xl font-extrabold text-white mt-1" id="dashAttendanceRate">0%</h3>
+                <p class="text-[11px] text-emerald-400 mt-1" id="dashPresentCount">0 Checked In Today</p>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-xl">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+            </div>
+
+            <!-- Pending Leaves -->
+            <div class="glass-card p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-amber-500">
+              <div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Pending Leaves</p>
+                <h3 class="text-3xl font-extrabold text-white mt-1" id="dashPendingLeaves">0</h3>
+                <p class="text-[11px] text-amber-400 mt-1">Requires HR Action</p>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 text-xl">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+            </div>
+
+            <!-- Est. Monthly Payroll -->
+            <div class="glass-card p-5 rounded-2xl flex items-center justify-between border-l-4 border-l-purple-500">
+              <div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Est. Monthly Payroll</p>
+                <h3 class="text-3xl font-extrabold text-white mt-1" id="dashPayrollTotal">$0</h3>
+                <p class="text-[11px] text-slate-400 mt-1">Base Total Commitment</p>
+              </div>
+              <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 text-xl">
+                <i class="fa-solid fa-money-bill-wave"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Clock In/Out Banner for Employee Role -->
+          <div id="quickCheckinBanner" class="glass-card p-6 rounded-2xl bg-gradient-to-r from-slate-800/90 via-slate-800/50 to-sky-950/40 border border-sky-500/20 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+              <div class="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-2xl">
+                <i class="fa-solid fa-user-clock"></i>
+              </div>
+              <div>
+                <h4 class="text-base font-bold text-white">Self-Service Quick Attendance</h4>
+                <p class="text-xs text-slate-400" id="quickCheckinStatus">Record your work entry timestamp for today.</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 w-full md:w-auto">
+              <button onclick="handleCheckIn()" id="btnCheckIn" class="flex-1 md:flex-initial px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Clock In</span>
+              </button>
+              <button onclick="handleCheckOut()" id="btnCheckOut" class="flex-1 md:flex-initial px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Clock Out</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Attendance Breakdown Chart -->
+            <div class="glass-card p-5 rounded-2xl lg:col-span-1 flex flex-col">
+              <h4 class="text-sm font-bold text-slate-200 mb-4 flex items-center justify-between">
+                <span>Attendance Status</span>
+                <i class="fa-solid fa-chart-pie text-slate-500"></i>
+              </h4>
+              <div class="flex-1 flex items-center justify-center min-h-[220px]">
+                <canvas id="chartAttendance"></canvas>
+              </div>
+            </div>
+
+            <!-- Department Distribution Chart -->
+            <div class="glass-card p-5 rounded-2xl lg:col-span-2 flex flex-col">
+              <h4 class="text-sm font-bold text-slate-200 mb-4 flex items-center justify-between">
+                <span>Headcount by Department</span>
+                <i class="fa-solid fa-chart-column text-slate-500"></i>
+              </h4>
+              <div class="flex-1 flex items-center justify-center min-h-[220px]">
+                <canvas id="chartDepartment"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Log Table -->
+          <div class="glass-card p-5 rounded-2xl">
+            <h4 class="text-sm font-bold text-slate-200 mb-4 flex items-center justify-between">
+              <span>System Real-Time Activity Log</span>
+              <span class="text-xs font-normal text-slate-400">Auto-logged actions</span>
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 uppercase bg-slate-800/50 border-b border-slate-700/60">
+                  <tr>
+                    <th class="px-4 py-3 rounded-l-lg">Timestamp</th>
+                    <th class="px-4 py-3">Category</th>
+                    <th class="px-4 py-3">User / Target</th>
+                    <th class="px-4 py-3 rounded-r-lg">Details</th>
+                  </tr>
+                </thead>
+                <tbody id="dashActivityTable" class="divide-y divide-slate-800/60 text-slate-300">
+                  <!-- Dynamic Content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: ADMIN / COMPANY SETUP -->
+        <div id="tab-admin" class="tab-content hidden space-y-6">
+          <div class="glass-card p-6 rounded-2xl">
+            <h3 class="text-lg font-bold text-white mb-1">Company Setup &amp; Governance Policies</h3>
+            <p class="text-xs text-slate-400 mb-6">Configure organizational parameters, work shifts, departments, and text policy documentation for RAG AI reading.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              <!-- Left Column: Department & Shift Config -->
+              <div class="space-y-6">
+                <!-- Add Department -->
+                <div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-3">
+                  <h4 class="text-sm font-semibold text-sky-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-sitemap"></i>
+                    <span>Departments Setup</span>
+                  </h4>
+                  <div class="flex space-x-2">
+                    <input type="text" id="newDeptInput" placeholder="Department Name (e.g. Engineering)" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+                    <button onclick="addDepartment()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition-colors">
+                      Add Dept
+                    </button>
+                  </div>
+                  <div id="deptBadgeContainer" class="flex flex-wrap gap-2 pt-2">
+                    <!-- Dynamic badges -->
+                  </div>
+                </div>
+
+                <!-- Shift & Work Hours Setup -->
+                <div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-3">
+                  <h4 class="text-sm font-semibold text-emerald-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-business-time"></i>
+                    <span>Work Shifts &amp; Timings</span>
+                  </h4>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Standard Shift Start</label>
+                      <input type="time" id="shiftStart" value="09:00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] text-slate-400 mb-1">Standard Shift End</label>
+                      <input type="time" id="shiftEnd" value="18:00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200">
+                    </div>
+                  </div>
+                  <button onclick="saveShiftConfig()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold rounded-lg transition-colors">
+                    Save Work Hours
+                  </button>
+                </div>
+              </div>
+
+              <!-- Right Column: Policy Document Markdown Vault -->
+              <div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-3 flex flex-col">
+                <h4 class="text-sm font-semibold text-purple-400 flex items-center justify-between">
+                  <span class="flex items-center space-x-2">
+                    <i class="fa-solid fa-book"></i>
+                    <span>Company Policy Document Vault (AI Readable Context)</span>
+                  </span>
+                  <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">RAG Context</span>
+                </h4>
+                <p class="text-[11px] text-slate-400">Write or paste your official company policies, leave rules, and holiday calendars below. The "HCM Brain" AI Assistant will reference this text to answer queries.</p>
+                <textarea id="policyDocsText" rows="10" placeholder="e.g. Leave Policy: Employees are entitled to 12 casual leaves and 10 sick leaves per year. Late arrival penalty: After 09:15 AM, 0.5 day pay is deducted..." class="w-full flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 font-mono focus:outline-none focus:border-purple-500"></textarea>
+                <button onclick="savePolicyDocs()" class="py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center space-x-2">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span>Update &amp; Re-Index AI Policy Knowledgebase</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: EMPLOYEE DIRECTORY -->
+        <div id="tab-directory" class="tab-content hidden space-y-6">
+          <!-- Action Bar -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="relative w-full sm:w-72">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+              <input type="text" id="searchEmpInput" oninput="renderEmployeeTable()" placeholder="Search name, email, dept..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+            </div>
+
+            <button onclick="openModal('addEmpModal')" class="role-admin role-hr w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-sky-600/20 transition-all flex items-center justify-center space-x-2">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Register New Employee</span>
+            </button>
+          </div>
+
+          <!-- Employee Table -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 uppercase bg-slate-800/80 border-b border-slate-700">
+                  <tr>
+                    <th class="px-5 py-3.5">Employee ID &amp; Name</th>
+                    <th class="px-5 py-3.5">Department</th>
+                    <th class="px-5 py-3.5">Designation</th>
+                    <th class="px-5 py-3.5">Base Salary</th>
+                    <th class="px-5 py-3.5">Joined Date</th>
+                    <th class="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="employeeTableBody" class="divide-y divide-slate-800 text-slate-300">
+                  <!-- Dynamic Content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: ATTENDANCE & LOGS -->
+        <div id="tab-attendance" class="tab-content hidden space-y-6">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Attendance Logs &amp; Timestamps</h3>
+              <p class="text-xs text-slate-400">Track real-time check-ins, check-outs, and late marks.</p>
+            </div>
+
+            <button onclick="openModal('manualAttendanceModal')" class="role-admin role-hr px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-all flex items-center space-x-2">
+              <i class="fa-solid fa-pen-to-square"></i>
+              <span>Manual Mark Attendance (HR)</span>
+            </button>
+          </div>
+
+          <!-- Attendance Table -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 uppercase bg-slate-800/80 border-b border-slate-700">
+                  <tr>
+                    <th class="px-5 py-3.5">Date</th>
+                    <th class="px-5 py-3.5">Employee</th>
+                    <th class="px-5 py-3.5">Clock In</th>
+                    <th class="px-5 py-3.5">Clock Out</th>
+                    <th class="px-5 py-3.5">Status</th>
+                    <th class="px-5 py-3.5">Recorded By</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody" class="divide-y divide-slate-800 text-slate-300">
+                  <!-- Dynamic Content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: LEAVE MANAGEMENT -->
+        <div id="tab-leaves" class="tab-content hidden space-y-6">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Leave Requests &amp; Allocations</h3>
+              <p class="text-xs text-slate-400">Submit requests and manage approvals with automatic balance calculations.</p>
+            </div>
+
+            <button onclick="openModal('requestLeaveModal')" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-amber-600/20 transition-all flex items-center space-x-2">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>Apply for Leave</span>
+            </button>
+          </div>
+
+          <!-- Leave Balances Preview Box -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass-card p-4 rounded-xl border-l-4 border-l-sky-500 flex justify-between items-center">
+              <div>
+                <span class="text-xs text-slate-400">Casual Leave Allowance</span>
+                <p class="text-lg font-bold text-white mt-0.5" id="lblCasualBalance">12 Days / Year</p>
+              </div>
+              <i class="fa-solid fa-umbrella-beach text-sky-400 text-xl"></i>
+            </div>
+            <div class="glass-card p-4 rounded-xl border-l-4 border-l-rose-500 flex justify-between items-center">
+              <div>
+                <span class="text-xs text-slate-400">Sick Leave Allowance</span>
+                <p class="text-lg font-bold text-white mt-0.5" id="lblSickBalance">10 Days / Year</p>
+              </div>
+              <i class="fa-solid fa-notes-medical text-rose-400 text-xl"></i>
+            </div>
+            <div class="glass-card p-4 rounded-xl border-l-4 border-l-purple-500 flex justify-between items-center">
+              <div>
+                <span class="text-xs text-slate-400">Annual Paid Leave</span>
+                <p class="text-lg font-bold text-white mt-0.5" id="lblAnnualBalance">14 Days / Year</p>
+              </div>
+              <i class="fa-solid fa-plane-departure text-purple-400 text-xl"></i>
+            </div>
+          </div>
+
+          <!-- Leave Requests Table -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 uppercase bg-slate-800/80 border-b border-slate-700">
+                  <tr>
+                    <th class="px-5 py-3.5">Employee</th>
+                    <th class="px-5 py-3.5">Type</th>
+                    <th class="px-5 py-3.5">Dates (Range)</th>
+                    <th class="px-5 py-3.5">Days</th>
+                    <th class="px-5 py-3.5">Reason</th>
+                    <th class="px-5 py-3.5">Status</th>
+                    <th class="px-5 py-3.5 text-right">Approval Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leaveTableBody" class="divide-y divide-slate-800 text-slate-300">
+                  <!-- Dynamic Content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 6: PAYROLL ENGINE -->
+        <div id="tab-payroll" class="tab-content hidden space-y-6">
+          <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h3 class="text-lg font-bold text-white">Automated Monthly Payroll Engine</h3>
+              <p class="text-xs text-slate-400 mt-0.5">Calculates deductions based on late arrivals, unpaid absentees, and leave policy logs.</p>
+            </div>
+
+            <button onclick="runPayrollEngine()" class="role-admin role-hr px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center space-x-2">
+              <i class="fa-solid fa-calculator"></i>
+              <span>Execute Monthly Payroll Run</span>
+            </button>
+          </div>
+
+          <!-- Payroll Run Results Table -->
+          <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="text-slate-400 uppercase bg-slate-800/80 border-b border-slate-700">
+                  <tr>
+                    <th class="px-5 py-3.5">Employee</th>
+                    <th class="px-5 py-3.5">Base Salary</th>
+                    <th class="px-5 py-3.5">Late Deductions</th>
+                    <th class="px-5 py-3.5">Unpaid Leave Deductions</th>
+                    <th class="px-5 py-3.5">Net Calculated Pay</th>
+                    <th class="px-5 py-3.5 text-right">Payslip</th>
+                  </tr>
+                </thead>
+                <tbody id="payrollTableBody" class="divide-y divide-slate-800 text-slate-300">
+                  <!-- Dynamic Content -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- FLOATING AI ASSISTANT WIDGET ("HCM Brain") -->
+  <div id="aiChatWidget" class="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <!-- Chat Window Container -->
+    <div id="aiChatBox" class="hidden mb-4 w-80 sm:w-96 h-[460px] glass-card rounded-2xl border border-sky-500/30 shadow-2xl flex flex-col overflow-hidden transition-all duration-300">
+      <!-- Chat Header -->
+      <div class="p-3.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm font-bold border border-sky-500/30">
+            <i class="fa-solid fa-brain"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>HCM Brain AI</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            </h4>
+            <p class="text-[10px] text-slate-400">Contextual Real-Time DB Reading</p>
+          </div>
+        </div>
+        <button onclick="toggleAIChat()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Chat Messages Scroll View -->
+      <div id="chatMessages" class="flex-1 p-3.5 space-y-3 overflow-y-auto text-xs">
+        <!-- Initial welcome message generated in JS -->
+      </div>
+
+      <!-- Quick Suggestion Pills -->
+      <div class="px-3 py-1.5 bg-slate-900/80 border-t border-slate-800 flex flex-wrap gap-1 text-[10px]">
+        <button onclick="askQuickAI('Who is absent today?')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700">Who is absent today?</button>
+        <button onclick="askQuickAI('What is our leave policy?')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-purple-300 border border-slate-700">Leave policy?</button>
+        <button onclick="askQuickAI('What is total monthly payroll?')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700">Total payroll?</button>
+      </div>
+
+      <!-- Chat Input Field -->
+      <form onsubmit="handleAISubmit(event)" class="p-2.5 bg-slate-800/90 border-t border-slate-700/80 flex space-x-2">
+        <input type="text" id="aiInput" placeholder="Ask questions from real data..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">
+        <button type="submit" class="w-8 h-8 bg-sky-600 hover:bg-sky-500 text-white rounded-xl flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-paper-plane text-xs"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- Toggle FAB Button -->
+    <button onclick="toggleAIChat()" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-xl shadow-sky-500/30 hover:scale-105 active:scale-95 transition-all pulse-glow">
+      <i class="fa-solid fa-robot"></i>
+    </button>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Modal 1: Register Employee -->
+  <div id="addEmpModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border border-slate-700 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Register New Employee</h3>
+        <button onclick="closeModal('addEmpModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveEmployee(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Full Name *</label>
+          <input type="text" id="empName" required placeholder="e.g. Sarah Jenkins" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Work Email *</label>
+          <input type="email" id="empEmail" required placeholder="sarah@company.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Department *</label>
+            <select id="empDept" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Designation</label>
+            <input type="text" id="empRole" placeholder="e.g. Senior Developer" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Base Monthly Salary ($)</label>
+            <input type="number" id="empSalary" required min="0" placeholder="5000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Joining Date</label>
+            <input type="date" id="empDate" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+        </div>
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeModal('addEmpModal')" class="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Cancel</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-semibold">Save Employee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Submit Leave Request -->
+  <div id="requestLeaveModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border border-slate-700 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Submit Leave Request</h3>
+        <button onclick="closeModal('requestLeaveModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveLeaveRequest(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Leave Type</label>
+          <select id="leaveType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+            <option value="Casual">Casual Leave</option>
+            <option value="Sick">Sick Leave</option>
+            <option value="Annual">Annual Paid Leave</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Start Date</label>
+            <input type="date" id="leaveStart" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">End Date</label>
+            <input type="date" id="leaveEnd" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Reason for Leave</label>
+          <textarea id="leaveReason" rows="3" required placeholder="Brief explanation..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200"></textarea>
+        </div>
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeModal('requestLeaveModal')" class="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Cancel</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-semibold">Submit Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Manual Attendance (HR) -->
+  <div id="manualAttendanceModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md rounded-2xl border border-slate-700 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Manual Mark Attendance</h3>
+        <button onclick="closeModal('manualAttendanceModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveManualAttendance(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Select Employee</label>
+          <select id="attEmpSelect" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Date</label>
+            <input type="date" id="attDate" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Status</label>
+            <select id="attStatus" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+              <option value="Present">Present</option>
+              <option value="Late">Late</option>
+              <option value="Absent">Absent</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Clock In Time</label>
+            <input type="time" id="attClockIn" value="09:00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Clock Out Time</label>
+            <input type="time" id="attClockOut" value="18:00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200">
+          </div>
+        </div>
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeModal('manualAttendanceModal')" class="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold">Cancel</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-semibold">Save Log</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: View Printable Payslip -->
+  <div id="payslipModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="glass-card w-full max-w-lg rounded-2xl border border-slate-700 p-6 space-y-4">
+      <div id="printableSlip" class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-slate-200 space-y-4">
+        <div class="flex justify-between items-start border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white">HCM Lite Enterprise</h2>
+            <p class="text-xs text-slate-400">Official Salary Payslip</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-sky-400 font-mono font-bold" id="slipPayPeriod">Period: Current Month</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-xs">
+          <div>
+            <span class="text-slate-400">Employee Name:</span>
+            <p class="font-bold text-white" id="slipEmpName">-</p>
+          </div>
+          <div>
+            <span class="text-slate-400">Designation / Dept:</span>
+            <p class="font-bold text-white" id="slipEmpRole">-</p>
+          </div>
+        </div>
+
+        <div class="space-y-2 border-t border-b border-slate-800 py-3 text-xs">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Base Salary</span>
+            <span class="font-mono text-white" id="slipBaseSalary">$0</span>
+          </div>
+          <div class="flex justify-between text-rose-400">
+            <span>Late Arrival Deductions</span>
+            <span class="font-mono" id="slipLateDeduction">-$0</span>
+          </div>
+          <div class="flex justify-between text-rose-400">
+            <span>Unpaid Leave Deductions</span>
+            <span class="font-mono" id="slipLeaveDeduction">-$0</span>
+          </div>
+        </div>
+
+        <div class="flex justify-between items-center pt-2">
+          <span class="text-sm font-bold text-white">Net Receivable Salary</span>
+          <span class="text-xl font-extrabold text-emerald-400 font-mono" id="slipNetPay">$0</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeModal('payslipModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">Close</button>
+        <button onclick="window.print()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold flex items-center space-x-1">
+          <i class="fa-solid fa-print"></i>
+          <span>Print Payslip</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- CORE JAVASCRIPT APP LOGIC -->
+  <script>
+    // --- GLOBAL STATE STORAGE SCHEMAS ---
+    const STORAGE_KEY = 'HCMLite_Data_v1';
+
+    let db = {
+      role: 'Admin', // Admin | HR | Employee
+      activeEmpId: null,
+      departments: [],
+      shift: { start: '09:00', end: '18:00' },
+      policyText: "Company Working Hours: 9:00 AM to 6:00 PM (Monday-Friday).\nLeaves Allowance: 12 Casual, 10 Sick, 14 Annual Paid days per calendar year.\nLate Arrival Policy: Arrival after 09:15 AM is marked Late. Cumulative late marks result in prorated salary deductions.",
+      employees: [],
+      attendance: [],
+      leaves: [],
+      payroll: [],
+      activityLogs: []
+    };
+
+    // Chart instances
+    let chartAttInstance = null;
+    let chartDeptInstance = null;
+
+    // Initialize Application
+    window.onload = function() {
+      loadFromLocalStorage();
+      setupDateHeader();
+      renderAllViews();
+      initAIChatWelcome();
+    };
+
+    // Save & Load Functions
+    function saveToLocalStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function loadFromLocalStorage() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          db = JSON.parse(stored);
+        } catch(e) {
+          console.error("Storage corruption, starting clean");
+        }
+      }
+      if (db.employees.length > 0 && !db.activeEmpId) {
+        db.activeEmpId = db.employees[0].id;
+      }
+    }
+
+    // Toggle Seed Data vs Empty State
+    function loadSeedData() {
+      db.departments = ['Engineering', 'Human Resources', 'Design', 'Marketing'];
+      db.shift = { start: '09:00', end: '18:00' };
+      db.employees = [
+        { id: 'EMP-101', name: 'Sarah Jenkins', email: 'sarah@company.com', dept: 'Engineering', role: 'Lead Developer', salary: 6500, date: '2023-01-15' },
+        { id: 'EMP-102', name: 'Ali Khan', email: 'ali@company.com', dept: 'Human Resources', role: 'HR Manager', salary: 4800, date: '2022-05-10' },
+        { id: 'EMP-103', name: 'Zoha Ahmed', email: 'zoha@company.com', dept: 'Design', role: 'UI/UX Specialist', salary: 4200, date: '2023-08-01' },
+        { id: 'EMP-104', name: 'Bilal Raza', email: 'bilal@company.com', dept: 'Marketing', role: 'Growth Marketer', salary: 3900, date: '2024-02-20' }
+      ];
+      db.activeEmpId = 'EMP-101';
+
+      const today = new Date().toISOString().split('T')[0];
+      db.attendance = [
+        { id: 'ATT-1', date: today, empId: 'EMP-101', clockIn: '08:55', clockOut: '18:05', status: 'Present', recordedBy: 'Self' },
+        { id: 'ATT-2', date: today, empId: 'EMP-102', clockIn: '09:25', clockOut: '18:00', status: 'Late', recordedBy: 'Self' },
+        { id: 'ATT-3', date: today, empId: 'EMP-103', clockIn: '-', clockOut: '-', status: 'Absent', recordedBy: 'System' }
+      ];
+
+      db.leaves = [
+        { id: 'LV-1', empId: 'EMP-104', type: 'Casual', start: today, end: today, days: 1, reason: 'Personal errands', status: 'Pending' }
+      ];
+
+      logActivity('System', 'Demo Seed Data loaded into browser memory.');
+      saveToLocalStorage();
+      renderAllViews();
+      showToast('Demo Seed Data loaded successfully!', 'success');
+    }
+
+    function resetData() {
+      db = {
+        role: db.role || 'Admin',
+        activeEmpId: null,
+        departments: [],
+        shift: { start: '09:00', end: '18:00' },
+        policyText: '',
+        employees: [],
+        attendance: [],
+        leaves: [],
+        payroll: [],
+        activityLogs: []
+      };
+      logActivity('System', 'System reset to empty state.');
+      saveToLocalStorage();
+      renderAllViews();
+      showToast('System reset to Empty Cold Start state', 'info');
+    }
+
+    // Role Management
+    function changeRole(newRole) {
+      db.role = newRole;
+      saveToLocalStorage();
+      applyRoleRestrictions();
+      renderAllViews();
+      showToast(`Switched active perspective to ${newRole}`, 'info');
+    }
+
+    function applyRoleRestrictions() {
+      document.getElementById('roleSelector').value = db.role;
+      document.getElementById('sidebarRoleBadge').innerText = db.role;
+
+      // Show/Hide role elements
+      const empSelectWrapper = document.getElementById('employeeSelectWrapper');
+      if (db.role === 'Employee') {
+        empSelectWrapper.classList.remove('hidden');
+        empSelectWrapper.classList.add('flex');
+      } else {
+        empSelectWrapper.classList.add('hidden');
+        empSelectWrapper.classList.remove('flex');
+      }
+
+      // Hide restricted sidebar tabs dynamically
+      const adminNav = document.getElementById('nav-admin');
+
+      if (db.role === 'Employee') {
+        adminNav.classList.add('hidden');
+      } else {
+        adminNav.classList.remove('hidden');
+      }
+    }
+
+    function setActiveEmployee(empId) {
+      db.activeEmpId = empId;
+      saveToLocalStorage();
+      renderAllViews();
+    }
+
+    // Navigation Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('text-sky-400', 'bg-sky-500/10', 'border', 'border-sky-500/20');
+        btn.classList.add('text-slate-400');
+      });
+
+      const activeBtn = document.getElementById(`nav-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('text-sky-400', 'bg-sky-500/10', 'border', 'border-sky-500/20');
+        activeBtn.classList.remove('text-slate-400');
+      }
+
+      const titles = {
+        dashboard: 'Dashboard Overview',
+        admin: 'Company Setup & Governance',
+        directory: 'Employee Directory',
+        attendance: 'Attendance Logs',
+        leaves: 'Leave Management',
+        payroll: 'Automated Payroll Engine'
+      };
+      document.getElementById('pageTitle').innerText = titles[tabId] || 'HCM Lite';
+      renderAllViews();
+    }
+
+    // Global Render Trigger
+    function renderAllViews() {
+      applyRoleRestrictions();
+      populateEmployeeDropdowns();
+      renderDashboard();
+      renderAdminSetup();
+      renderEmployeeTable();
+      renderAttendanceTable();
+      renderLeaveTable();
+      renderPayrollTable();
+    }
+
+    // --- DASHBOARD RENDER & CHARTS ---
+    function renderDashboard() {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Metrics
+      const totalHeadcount = db.employees.length;
+      const totalDepts = db.departments.length;
+      const todayAtt = db.attendance.filter(a => a.date === today && (a.status === 'Present' || a.status === 'Late'));
+      const attendanceRate = totalHeadcount > 0 ? Math.round((todayAtt.length / totalHeadcount) * 100) : 0;
+      const pendingLeaves = db.leaves.filter(l => l.status === 'Pending').length;
+      const totalPayroll = db.employees.reduce((acc, curr) => acc + (Number(curr.salary) || 0), 0);
+
+      document.getElementById('dashTotalHeadcount').innerText = totalHeadcount;
+      document.getElementById('dashDeptCount').innerText = `Across ${totalDepts} Departments`;
+      document.getElementById('dashAttendanceRate').innerText = `${attendanceRate}%`;
+      document.getElementById('dashPresentCount').innerText = `${todayAtt.length} Checked In Today`;
+      document.getElementById('dashPendingLeaves').innerText = pendingLeaves;
+      document.getElementById('dashPayrollTotal').innerText = `$${totalPayroll.toLocaleString()}`;
+
+      // Quick Check-in Button State for Active Employee
+      const activeEmp = db.employees.find(e => e.id === db.activeEmpId);
+      const todayLog = db.attendance.find(a => a.date === today && a.empId === db.activeEmpId);
+
+      const btnIn = document.getElementById('btnCheckIn');
+      const btnOut = document.getElementById('btnCheckOut');
+      const statusLbl = document.getElementById('quickCheckinStatus');
+
+      if (!activeEmp) {
+        statusLbl.innerText = 'No employee profile selected for quick check-in.';
+        btnIn.disabled = true;
+        btnOut.disabled = true;
+      } else if (todayLog) {
+        if (todayLog.clockOut && todayLog.clockOut !== '-') {
+          statusLbl.innerText = `Shift Completed today (${todayLog.clockIn} - ${todayLog.clockOut}).`;
+          btnIn.disabled = true;
+          btnOut.disabled = true;
+        } else {
+          statusLbl.innerText = `Clocked IN at ${todayLog.clockIn}. Click below to Clock Out.`;
+          btnIn.disabled = true;
+          btnOut.disabled = false;
+        }
+      } else {
+        statusLbl.innerText = `Logged in as ${activeEmp.name}. Ready to clock in for today.`;
+        btnIn.disabled = false;
+        btnOut.disabled = true;
+      }
+
+      // Render Charts
+      renderCharts(today);
+
+      // Render Activity Log Table
+      const activityBody = document.getElementById('dashActivityTable');
+      if (db.activityLogs.length === 0) {
+        activityBody.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-center text-slate-500 italic">No activity recorded yet. System starts empty.</td></tr>`;
+      } else {
+        activityBody.innerHTML = db.activityLogs.slice(-5).reverse().map(log => `
+          <tr class="hover:bg-slate-800/30">
+            <td class="px-4 py-2 font-mono text-[11px] text-slate-400">${log.time}</td>
+            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-medium">${log.category}</span></td>
+            <td class="px-4 py-2 font-semibold text-slate-200">${log.user}</td>
+            <td class="px-4 py-2 text-slate-400">${log.details}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function renderCharts(today) {
+      // 1. Attendance Pie Chart
+      const presentCount = db.attendance.filter(a => a.date === today && a.status === 'Present').length;
+      const lateCount = db.attendance.filter(a => a.date === today && a.status === 'Late').length;
+      const absentCount = Math.max(0, db.employees.length - (presentCount + lateCount));
+
+      const ctxAtt = document.getElementById('chartAttendance').getContext('2d');
+      if (chartAttInstance) chartAttInstance.destroy();
+
+      chartAttInstance = new Chart(ctxAtt, {
+        type: 'doughnut',
+        data: {
+          labels: ['Present', 'Late', 'Absent'],
+          datasets: [{
+            data: [presentCount, lateCount, absentCount],
+            backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } }
+        }
+      });
+
+      // 2. Department Bar Chart
+      const deptCounts = {};
+      db.departments.forEach(d => deptCounts[d] = 0);
+      db.employees.forEach(e => {
+        if (deptCounts[e.dept] !== undefined) deptCounts[e.dept]++;
+        else deptCounts[e.dept] = 1;
+      });
+
+      const ctxDept = document.getElementById('chartDepartment').getContext('2d');
+      if (chartDeptInstance) chartDeptInstance.destroy();
+
+      chartDeptInstance = new Chart(ctxDept, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(deptCounts).length ? Object.keys(deptCounts) : ['None'],
+          datasets: [{
+            label: 'Employees',
+            data: Object.values(deptCounts).length ? Object.values(deptCounts) : [0],
+            backgroundColor: '#0284c7',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // --- ADMIN SETUP FUNCTIONS ---
+    function renderAdminSetup() {
+      const deptContainer = document.getElementById('deptBadgeContainer');
+      if (db.departments.length === 0) {
+        deptContainer.innerHTML = `<span class="text-xs text-slate-500 italic">No departments created yet.</span>`;
+      } else {
+        deptContainer.innerHTML = db.departments.map(d => `
+          <span class="px-3 py-1 bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs font-semibold rounded-lg flex items-center space-x-2">
+            <span>${d}</span>
+            <button onclick="removeDepartment('${d}')" class="text-sky-400 hover:text-rose-400 ml-1"><i class="fa-solid fa-xmark"></i></button>
+          </span>
+        `).join('');
+      }
+
+      document.getElementById('shiftStart').value = db.shift.start || '09:00';
+      document.getElementById('shiftEnd').value = db.shift.end || '18:00';
+      document.getElementById('policyDocsText').value = db.policyText || '';
+    }
+
+    function addDepartment() {
+      const input = document.getElementById('newDeptInput');
+      const val = input.value.trim();
+      if (!val) return;
+      if (!db.departments.includes(val)) {
+        db.departments.push(val);
+        input.value = '';
+        logActivity('Admin', `Added department: ${val}`);
+        saveToLocalStorage();
+        renderAllViews();
+        showToast(`Department '${val}' added`, 'success');
+      }
+    }
+
+    function removeDepartment(deptName) {
+      db.departments = db.departments.filter(d => d !== deptName);
+      logActivity('Admin', `Removed department: ${deptName}`);
+      saveToLocalStorage();
+      renderAllViews();
+      showToast(`Department removed`, 'info');
+    }
+
+    function saveShiftConfig() {
+      db.shift.start = document.getElementById('shiftStart').value;
+      db.shift.end = document.getElementById('shiftEnd').value;
+      logActivity('Admin', `Updated shift hours to ${db.shift.start} - ${db.shift.end}`);
+      saveToLocalStorage();
+      showToast('Shift working hours updated', 'success');
+    }
+
+    function savePolicyDocs() {
+      db.policyText = document.getElementById('policyDocsText').value;
+      logActivity('Admin', 'Updated company policy text vault.');
+      saveToLocalStorage();
+      showToast('Policy documents updated & re-indexed for AI Assistant!', 'success');
+    }
+
+    // --- EMPLOYEE DIRECTORY FUNCTIONS ---
+    function renderEmployeeTable() {
+      const tbody = document.getElementById('employeeTableBody');
+      const query = (document.getElementById('searchEmpInput')?.value || '').toLowerCase();
+
+      const filtered = db.employees.filter(e =>
+        e.name.toLowerCase().includes(query) ||
+        e.email.toLowerCase().includes(query) ||
+        e.dept.toLowerCase().includes(query)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-6 text-center text-slate-500 italic">No employees found in system database.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(e => `
+        <tr class="hover:bg-slate-800/40 transition-colors">
+          <td class="px-5 py-3.5 flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full bg-sky-600/20 text-sky-400 font-bold flex items-center justify-center border border-sky-500/30">
+              ${e.name.charAt(0)}
+            </div>
+            <div>
+              <p class="font-bold text-slate-100">${e.name}</p>
+              <p class="text-[11px] text-slate-400 font-mono">${e.id} &bull; ${e.email}</p>
+            </div>
+          </td>
+          <td class="px-5 py-3.5"><span class="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">${e.dept}</span></td>
+          <td class="px-5 py-3.5 text-slate-300">${e.role || '-'}</td>
+          <td class="px-5 py-3.5 font-mono text-emerald-400 font-bold">$${Number(e.salary).toLocaleString()}</td>
+          <td class="px-5 py-3.5 text-slate-400">${e.date}</td>
+          <td class="px-5 py-3.5 text-right space-x-2">
+            <button onclick="deleteEmployee('${e.id}')" class="role-admin role-hr text-rose-400 hover:text-rose-300 p-1 rounded"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function saveEmployee(e) {
+      e.preventDefault();
+      const newEmp = {
+        id: 'EMP-' + Math.floor(100 + Math.random() * 900),
+        name: document.getElementById('empName').value,
+        email: document.getElementById('empEmail').value,
+        dept: document.getElementById('empDept').value,
+        role: document.getElementById('empRole').value,
+        salary: Number(document.getElementById('empSalary').value),
+        date: document.getElementById('empDate').value
+      };
+
+      db.employees.push(newEmp);
+      if (!db.activeEmpId) db.activeEmpId = newEmp.id;
+
+      logActivity('HR', `Registered new employee: ${newEmp.name} (${newEmp.dept})`);
+      saveToLocalStorage();
+      closeModal('addEmpModal');
+      renderAllViews();
+      showToast(`Employee ${newEmp.name} registered!`, 'success');
+    }
+
+    function deleteEmployee(empId) {
+      const emp = db.employees.find(e => e.id === empId);
+      if (emp) {
+        db.employees = db.employees.filter(e => e.id !== empId);
+        logActivity('HR', `Deleted employee profile: ${emp.name}`);
+        saveToLocalStorage();
+        renderAllViews();
+        showToast('Employee removed', 'info');
+      }
+    }
+
+    // --- ATTENDANCE FUNCTIONS ---
+    function renderAttendanceTable() {
+      const tbody = document.getElementById('attendanceTableBody');
+      if (db.attendance.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-6 text-center text-slate-500 italic">No attendance records logged.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = db.attendance.slice().reverse().map(a => {
+        const emp = db.employees.find(e => e.id === a.empId);
+        const empName = emp ? emp.name : a.empId;
+        const statusColors = {
+          Present: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          Late: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          Absent: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+        };
+
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-5 py-3 font-mono text-slate-300">${a.date}</td>
+            <td class="px-5 py-3 font-semibold text-white">${empName}</td>
+            <td class="px-5 py-3 font-mono text-emerald-400">${a.clockIn}</td>
+            <td class="px-5 py-3 font-mono text-rose-400">${a.clockOut || '-'}</td>
+            <td class="px-5 py-3"><span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${statusColors[a.status] || ''}">${a.status}</span></td>
+            <td class="px-5 py-3 text-slate-400">${a.recordedBy || 'Self'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function handleCheckIn() {
+      if (!db.activeEmpId) {
+        showToast('Please select or register an employee profile first!', 'error');
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      const nowTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
+
+      // Late calculation based on shift start + 15 mins buffer
+      const shiftStartMins = timeToMins(db.shift.start || '09:00') + 15;
+      const currentMins = timeToMins(nowTime);
+      const isLate = currentMins > shiftStartMins;
+
+      const newAtt = {
+        id: 'ATT-' + Date.now(),
+        date: today,
+        empId: db.activeEmpId,
+        clockIn: nowTime,
+        clockOut: '-',
+        status: isLate ? 'Late' : 'Present',
+        recordedBy: 'Self Check-in'
+      };
+
+      db.attendance.push(newAtt);
+      const emp = db.employees.find(e => e.id === db.activeEmpId);
+      logActivity('Attendance', `${emp ? emp.name : 'Employee'} clocked IN at ${nowTime} (${newAtt.status})`);
+      saveToLocalStorage();
+      renderAllViews();
+      showToast(`Clocked IN successfully at ${nowTime}`, 'success');
+    }
+
+    function handleCheckOut() {
+      const today = new Date().toISOString().split('T')[0];
+      const nowTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
+
+      const record = db.attendance.find(a => a.date === today && a.empId === db.activeEmpId);
+      if (record) {
+        record.clockOut = nowTime;
+        const emp = db.employees.find(e => e.id === db.activeEmpId);
+        logActivity('Attendance', `${emp ? emp.name : 'Employee'} clocked OUT at ${nowTime}`);
+        saveToLocalStorage();
+        renderAllViews();
+        showToast(`Clocked OUT successfully at ${nowTime}`, 'info');
+      }
+    }
+
+    function saveManualAttendance(e) {
+      e.preventDefault();
+      const empId = document.getElementById('attEmpSelect').value;
+      const date = document.getElementById('attDate').value;
+      const status = document.getElementById('attStatus').value;
+      const clockIn = document.getElementById('attClockIn').value;
+      const clockOut = document.getElementById('attClockOut').value;
+
+      db.attendance.push({
+        id: 'ATT-' + Date.now(),
+        date, empId, clockIn, clockOut, status,
+        recordedBy: 'HR Manual'
+      });
+
+      logActivity('HR', `Manual attendance marked for ${empId} on ${date}`);
+      saveToLocalStorage();
+      closeModal('manualAttendanceModal');
+      renderAllViews();
+      showToast('Attendance logged manually', 'success');
+    }
+
+    // --- LEAVE MANAGEMENT FUNCTIONS ---
+    function renderLeaveTable() {
+      const tbody = document.getElementById('leaveTableBody');
+      if (db.leaves.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-6 text-center text-slate-500 italic">No leave applications found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = db.leaves.slice().reverse().map(l => {
+        const emp = db.employees.find(e => e.id === l.empId);
+        const empName = emp ? emp.name : l.empId;
+
+        const badgeColors = {
+          Pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          Approved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          Rejected: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+        };
+
+        const isHR = db.role === 'Admin' || db.role === 'HR';
+
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-5 py-3 font-semibold text-white">${empName}</td>
+            <td class="px-5 py-3 text-slate-300">${l.type}</td>
+            <td class="px-5 py-3 font-mono text-slate-400">${l.start} to ${l.end}</td>
+            <td class="px-5 py-3 font-bold text-sky-400">${l.days} Day(s)</td>
+            <td class="px-5 py-3 text-slate-400 max-w-xs truncate">${l.reason}</td>
+            <td class="px-5 py-3"><span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badgeColors[l.status]}">${l.status}</span></td>
+            <td class="px-5 py-3 text-right space-x-1">
+              ${l.status === 'Pending' && isHR ? `
+                <button onclick="updateLeaveStatus('${l.id}', 'Approved')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px]">Approve</button>
+                <button onclick="updateLeaveStatus('${l.id}', 'Rejected')" class="px-2 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[11px]">Reject</button>
+              ` : `<span class="text-slate-500 text-[11px] italic">No action</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function saveLeaveRequest(e) {
+      e.preventDefault();
+      if (!db.activeEmpId) {
+        showToast('Please select an active employee profile first', 'error');
+        return;
+      }
+
+      const start = document.getElementById('leaveStart').value;
+      const end = document.getElementById('leaveEnd').value;
+      const diffTime = Math.abs(new Date(end) - new Date(start));
+      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      const newLeave = {
+        id: 'LV-' + Date.now(),
+        empId: db.activeEmpId,
+        type: document.getElementById('leaveType').value,
+        start, end,
+        days: isNaN(days) ? 1 : days,
+        reason: document.getElementById('leaveReason').value,
+        status: 'Pending'
+      };
+
+      db.leaves.push(newLeave);
+      const emp = db.employees.find(e => e.id === db.activeEmpId);
+      logActivity('Leave', `Leave submitted by ${emp ? emp.name : 'Employee'} (${newLeave.days} days)`);
+      saveToLocalStorage();
+      closeModal('requestLeaveModal');
+      renderAllViews();
+      showToast('Leave request submitted for approval', 'success');
+    }
+
+    function updateLeaveStatus(leaveId, status) {
+      const l = db.leaves.find(item => item.id === leaveId);
+      if (l) {
+        l.status = status;
+        logActivity('HR', `Leave request #${leaveId} marked as ${status}`);
+        saveToLocalStorage();
+        renderAllViews();
+        showToast(`Leave request ${status}`, 'info');
+      }
+    }
+
+    // --- PAYROLL ENGINE FUNCTIONS ---
+    function runPayrollEngine() {
+      if (db.employees.length === 0) {
+        showToast('No employees to calculate payroll for.', 'error');
+        return;
+      }
+
+      db.payroll = db.employees.map(emp => {
+        // Find employee late arrivals
+        const empAtt = db.attendance.filter(a => a.empId === emp.id);
+        const lateCount = empAtt.filter(a => a.status === 'Late').length;
+        const lateDeduction = lateCount * 25; // $25 deduction per late arrival
+
+        // Find unpaid/rejected leaves
+        const unapprovedLeaves = db.leaves.filter(l => l.empId === emp.id && l.status === 'Rejected');
+        const unpaidDays = unapprovedLeaves.reduce((acc, curr) => acc + curr.days, 0);
+        const dailyRate = Math.round(emp.salary / 22);
+        const unpaidDeduction = unpaidDays * dailyRate;
+
+        const netPay = Math.max(0, emp.salary - lateDeduction - unpaidDeduction);
+
+        return {
+          empId: emp.id,
+          base: emp.salary,
+          lateDeduction,
+          unpaidDeduction,
+          netPay
+        };
+      });
+
+      logActivity('Payroll', `Executed monthly payroll calculation for ${db.employees.length} employees.`);
+      saveToLocalStorage();
+      renderPayrollTable();
+      showToast('Payroll calculation completed!', 'success');
+    }
+
+    function renderPayrollTable() {
+      const tbody = document.getElementById('payrollTableBody');
+      if (db.payroll.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-6 text-center text-slate-500 italic">Payroll run not executed for current month yet. Click "Execute Monthly Payroll Run".</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = db.payroll.map(p => {
+        const emp = db.employees.find(e => e.id === p.empId);
+        if (!emp) return '';
+
+        return `
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-5 py-3 font-semibold text-white">${emp.name} <span class="text-[10px] text-slate-400">(${emp.id})</span></td>
+            <td class="px-5 py-3 font-mono text-slate-300">$${p.base.toLocaleString()}</td>
+            <td class="px-5 py-3 font-mono text-rose-400">-$${p.lateDeduction}</td>
+            <td class="px-5 py-3 font-mono text-rose-400">-$${p.unpaidDeduction}</td>
+            <td class="px-5 py-3 font-mono text-emerald-400 font-extrabold">$${p.netPay.toLocaleString()}</td>
+            <td class="px-5 py-3 text-right">
+              <button onclick="viewPayslip('${emp.id}')" class="px-3 py-1 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded text-xs font-semibold">View Slip</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function viewPayslip(empId) {
+      const emp = db.employees.find(e => e.id === empId);
+      const pay = db.payroll.find(p => p.empId === empId);
+      if (!emp || !pay) return;
+
+      document.getElementById('slipEmpName').innerText = emp.name;
+      document.getElementById('slipEmpRole').innerText = `${emp.role || 'Staff'} \u2022 ${emp.dept}`;
+      document.getElementById('slipBaseSalary').innerText = `$${pay.base.toLocaleString()}`;
+      document.getElementById('slipLateDeduction').innerText = `-$${pay.lateDeduction}`;
+      document.getElementById('slipLeaveDeduction').innerText = `-$${pay.unpaidDeduction}`;
+      document.getElementById('slipNetPay').innerText = `$${pay.netPay.toLocaleString()}`;
+
+      openModal('payslipModal');
+    }
+
+    // --- AI ASSISTANT ("HCM BRAIN") IMPLEMENTATION ---
+    function toggleAIChat() {
+      const box = document.getElementById('aiChatBox');
+      box.classList.toggle('hidden');
+    }
+
+    function initAIChatWelcome() {
+      const chatContainer = document.getElementById('chatMessages');
+      chatContainer.innerHTML = `
+        <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 text-slate-300">
+          <p class="font-bold text-sky-400 mb-1">\ud83d\udc4b Hello! I am HCM Brain AI.</p>
+          <p>I analyze live data in this system to answer queries on attendance, leaves, payroll, and company policy.</p>
+        </div>
+      `;
+    }
+
+    function askQuickAI(promptText) {
+      document.getElementById('aiInput').value = promptText;
+      handleAISubmit(new Event('submit'));
+    }
+
+    function handleAISubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('aiInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendChatMessage('user', text);
+      input.value = '';
+
+      // Simulate AI Processing thinking state
+      setTimeout(() => {
+        const response = generateAIResponse(text);
+        appendChatMessage('assistant', response);
+      }, 400);
+    }
+
+    function appendChatMessage(sender, text) {
+      const chatContainer = document.getElementById('chatMessages');
+      const isUser = sender === 'user';
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = isUser
+        ? 'p-3 rounded-xl bg-sky-600/20 border border-sky-500/30 text-slate-100 ml-6'
+        : 'p-3 rounded-xl bg-slate-800/90 border border-slate-700 text-slate-200 mr-6';
+
+      msgDiv.innerHTML = `
+        <div class="text-[10px] font-bold text-slate-400 mb-1">${isUser ? 'You' : 'HCM Brain AI'}</div>
+        <div class="leading-relaxed whitespace-pre-wrap">${text}</div>
+      `;
+
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Context-Aware Deterministic AI Query Parsing Engine
+    function generateAIResponse(query) {
+      const q = query.toLowerCase();
+      const today = new Date().toISOString().split('T')[0];
+
+      // Zero-Data Check Safeguard
+      if (db.employees.length === 0 && !q.includes('policy')) {
+        return "\u26a0\ufe0f **System is currently empty.** No employee records exist in the database. Please add employees or load seed data to query operational stats.";
+      }
+
+      // Query 1: Who is absent today?
+      if (q.includes('absent') || q.includes('who is not here')) {
+        const presentEmpIds = db.attendance
+          .filter(a => a.date === today && (a.status === 'Present' || a.status === 'Late'))
+          .map(a => a.empId);
+
+        const absentees = db.employees.filter(e => !presentEmpIds.includes(e.id));
+
+        if (absentees.length === 0) {
+          return "\u2705 **100% Attendance Today!** All registered employees have checked in.";
+        } else {
+          const list = absentees.map(a => `\u2022 **${a.name}** (${a.dept})`).join('\n');
+          return `\ud83d\udccc **Absent Employees Today (${absentees.length}):**\n${list}`;
+        }
+      }
+
+      // Query 2: Leaves / Remaining leaves query
+      if (q.includes('leave') && (q.includes('how many') || q.includes('remaining') || q.includes('left'))) {
+        // Extract possible employee name match
+        const foundEmp = db.employees.find(e => q.includes(e.name.toLowerCase()) || q.includes(e.name.split(' ')[0].toLowerCase()));
+
+        if (foundEmp) {
+          const takenLeaves = db.leaves
+            .filter(l => l.empId === foundEmp.id && l.status === 'Approved')
+            .reduce((acc, curr) => acc + curr.days, 0);
+
+          return `\ud83d\udcca **Leave Balance for ${foundEmp.name}:**\n\u2022 Annual Allowance: 36 days total\n\u2022 Approved Leaves Taken: **${takenLeaves} days**\n\u2022 Remaining Allowance: **${36 - takenLeaves} days**`;
+        } else {
+          const pendingCount = db.leaves.filter(l => l.status === 'Pending').length;
+          return `\u2139\ufe0f There are currently **${pendingCount} pending leave requests** awaiting approval in the system. Specifying an employee name gives individual breakdowns.`;
+        }
+      }
+
+      // Query 3: Total Monthly Payroll
+      if (q.includes('payroll') || q.includes('salary') || q.includes('cost')) {
+        if (db.role === 'Employee') {
+          return "\ud83d\udd12 **Access Restricted:** Salary & total payroll analytics are restricted to HR Manager and Admin roles.";
+        }
+
+        const totalBase = db.employees.reduce((acc, curr) => acc + (Number(curr.salary) || 0), 0);
+        return `\ud83d\udcb5 **Monthly Payroll Summary:**\n\u2022 Total Employees: **${db.employees.length}**\n\u2022 Base Commitment: **$${totalBase.toLocaleString()} / month**`;
+      }
+
+      // Query 4: Company Holiday / Leave Policy RAG Retrieval
+      if (q.includes('policy') || q.includes('holiday') || q.includes('rules') || q.includes('hours')) {
+        if (!db.policyText.trim()) {
+          return "\u2139\ufe0f No custom policy document text has been uploaded in Admin setup yet.";
+        }
+        return `\ud83d\udcd6 **Company Policy Reference (RAG Document):**\n\n"${db.policyText}"`;
+      }
+
+      // Query 5: Headcount or Department breakdown
+      if (q.includes('headcount') || q.includes('department') || q.includes('how many employees')) {
+        return `\ud83c\udfe2 **Headcount Overview:**\n\u2022 Total Staff: **${db.employees.length} employees**\n\u2022 Total Active Departments: **${db.departments.length}** (${db.departments.join(', ')})`;
+      }
+
+      // Fallback Answer
+      return `\ud83e\udd16 I checked the database for context regarding "${query}". \n\nYou can ask me specific questions like:\n\u2022 "Who is absent today?"\n\u2022 "How many leaves does Sarah have left?"\n\u2022 "What is total monthly payroll?"\n\u2022 "What is our company leave policy?"`;
+    }
+
+    // --- HELPER UTILITIES ---
+    function populateEmployeeDropdowns() {
+      const empSelects = [document.getElementById('employeeSelector'), document.getElementById('attEmpSelect')];
+
+      empSelects.forEach(sel => {
+        if (!sel) return;
+        sel.innerHTML = db.employees.length === 0
+          ? `<option value="">No Employees</option>`
+          : db.employees.map(e => `<option value="${e.id}">${e.name} (${e.dept})</option>`).join('');
+      });
+
+      if (db.activeEmpId) {
+        document.getElementById('employeeSelector').value = db.activeEmpId;
+      }
+
+      // Department modal dropdown
+      const deptModalSelect = document.getElementById('empDept');
+      if (deptModalSelect) {
+        deptModalSelect.innerHTML = db.departments.length === 0
+          ? `<option value="General">General</option>`
+          : db.departments.map(d => `<option value="${d}">${d}</option>`).join('');
+      }
+    }
+
+    function logActivity(category, details) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const user = db.role;
+      db.activityLogs.push({ time, category, user, details });
+      if (db.activityLogs.length > 30) db.activityLogs.shift();
+    }
+
+    function setupDateHeader() {
+      const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+      document.getElementById('currentDateStr').innerText = new Date().toLocaleDateString('en-US', options);
+
+      // Default date inputs to today
+      const today = new Date().toISOString().split('T')[0];
+      if (document.getElementById('empDate')) document.getElementById('empDate').value = today;
+      if (document.getElementById('attDate')) document.getElementById('attDate').value = today;
+      if (document.getElementById('leaveStart')) document.getElementById('leaveStart').value = today;
+      if (document.getElementById('leaveEnd')) document.getElementById('leaveEnd').value = today;
+    }
+
+    function timeToMins(timeStr) {
+      if (!timeStr || timeStr === '-') return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      }
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      const colors = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        error: 'bg-rose-600 text-white border-rose-500',
+        info: 'bg-sky-600 text-white border-sky-500'
+      };
+
+      toast.className = `px-4 py-3 rounded-xl border shadow-xl text-xs font-semibold flex items-center space-x-2 transition-all duration-300 pointer-events-auto ${colors[type]}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
